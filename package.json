@@ -40,7 +40,7 @@
     "type-check": "tsrs --noEmit"
   },
   "dependencies": {
-    "@vue/compiler-sfc": "^3.5.46",
+    "@vue/compiler-sfc": "^3.0.0",
     "load-oxfmt-config": "^0.33.0",
     "picomatch": "^4.0.7",
     "prettier-linter-helpers": "^1.0.1",

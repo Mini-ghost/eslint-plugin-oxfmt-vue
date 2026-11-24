@@ -61,3 +61,30 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
       - run: pnpm exec vitest run
+
+  # The range of `@vue/compiler-sfc` lets users install an old version, so the
+  # tests also run with the lowest version in the range
+  test-compiler-sfc-min:
+    name: test (@vue/compiler-sfc lowest version)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - name: Install the lowest @vue/compiler-sfc version
+        run: |
+          version=$(node -p "require('./package.json').dependencies['@vue/compiler-sfc'].replace(/^\^/, '')")
+          pnpm add "@vue/compiler-sfc@$version"
+          installed=$(node -p "require('@vue/compiler-sfc/package.json').version")
+          if [ "$installed" != "$version" ]; then
+            echo "::error::Expected @vue/compiler-sfc $version, but $installed is installed"
+            exit 1
+          fi
+      - run: pnpm exec vitest run
