@@ -1,0 +1,2 @@
+# Keeps the tests from reading an .editorconfig above the repository
+root = true
