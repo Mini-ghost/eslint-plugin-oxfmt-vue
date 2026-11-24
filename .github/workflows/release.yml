@@ -1,0 +1,49 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # npm trusted publishing authenticates with the GitHub OIDC token
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+      - run: pnpm install --frozen-lockfile
+      - name: Make sure that the tag matches the package version
+        run: |
+          version=$(node -p "require('./package.json').version")
+          if [ "$GITHUB_REF_NAME" != "v$version" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match package.json version $version"
+            exit 1
+          fi
+      - run: pnpm test
+      # We published the first version by hand, because npm accepts a trusted
+      # publisher only for a package that exists
+      - name: Look up this version on npm
+        id: published
+        run: |
+          version=$(node -p "require('./package.json').version")
+          if npm view "eslint-plugin-oxfmt-vue@$version" version > /dev/null 2>&1; then
+            echo "::notice::Version $version is already on npm. This run does not publish it again."
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          fi
+      # `prepack` builds `dist` again. pnpm does not document OIDC support, so
+      # the npm CLI publishes the package.
+      - if: steps.published.outputs.exists != 'true'
+        run: npm publish
