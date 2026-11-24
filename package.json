@@ -11,8 +11,16 @@
     "oxfmt",
     "vue"
   ],
+  "homepage": "https://github.com/Mini-ghost/eslint-plugin-oxfmt-vue#readme",
+  "bugs": {
+    "url": "https://github.com/Mini-ghost/eslint-plugin-oxfmt-vue/issues"
+  },
   "license": "MIT",
   "author": "Alex Liu",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Mini-ghost/eslint-plugin-oxfmt-vue.git"
+  },
   "files": [
     "dist"
   ],
