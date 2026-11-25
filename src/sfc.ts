@@ -63,6 +63,16 @@ export function toSFCSegments(
   const { descriptor } = parse(text, { filename, pad: false })
   const { template, script, scriptSetup, styles, customBlocks } = descriptor
 
+  // oxfmt parses template expressions as TypeScript only when the SFC has a
+  // TypeScript script. For this reason, the input for the template starts with
+  // empty copies of the script tags. oxfmt then reads `lang` from these tags to
+  // decide how to parse the expressions, as the oxfmt CLI does for the whole file.
+  const scriptTags = [script, scriptSetup]
+    .map((block) =>
+      block?.lang ? `<script${block.setup ? ' setup' : ''} lang="${block.lang}"></script>\n` : '',
+    )
+    .join('')
+
   const segments: Segment[] = []
 
   for (const block of [template, script, scriptSetup, ...styles]) {
@@ -71,16 +81,16 @@ export function toSFCSegments(
     if (block.src) continue
 
     const type = block.type as BuiltInBlockType
-    const startTag = `<${type}${block.lang ? ` lang="${block.lang}"` : ''}>`
+    const prefix = `${type === 'template' ? scriptTags : ''}<${type}${block.lang ? ` lang="${block.lang}"` : ''}>`
     const start = block.loc.start.offset
     const end = block.loc.end.offset
     segments.push({
       filename: `${filename}.${type}.vue`,
-      formatInput: `${startTag}${block.content}</${type}>\n`,
+      formatInput: `${prefix}${block.content}</${type}>\n`,
       start,
       originalContent: block.content,
       extract: (code) => extractBlockContent(code, type),
-      toFileIndex: (index) => clamp(start + index - startTag.length, start, end),
+      toFileIndex: (index) => clamp(start + index - prefix.length, start, end),
     })
   }
 

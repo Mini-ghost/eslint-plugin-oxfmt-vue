@@ -147,6 +147,41 @@ describe('Vue SFCs', () => {
     expect(fixed.output).toContain('  <div class="a" />\n')
   })
 
+  describe('template expressions', () => {
+    it.each([
+      [
+        '<script setup lang="ts">',
+        '<script setup lang="ts">\nconst data = 1\n</script>\n\n<template>\n  <Foo :a="(data as any)" />\n</template>\n',
+      ],
+      [
+        '<script lang="ts">',
+        '<script lang="ts">\nconst data = 1\n</script>\n\n<template>\n  <Foo :a="(data as any)" />\n</template>\n',
+      ],
+      [
+        '<script src lang="ts">',
+        '<script src="./a.ts" lang="ts"></script>\n\n<template>\n  <Foo :a="(data as any)" />\n</template>\n',
+      ],
+    ])('parses them as TypeScript next to %s', (_, code) => {
+      const { fixed } = lint('basic', 'A.vue', code)
+      expect(fixed.output).toContain(':a="data as any"')
+    })
+
+    it('keeps them unchanged next to a JavaScript script, as the oxfmt CLI does', () => {
+      const code =
+        '<script>\nconst data = 1\n</script>\n\n<template>\n  <Foo :a="(data as any)" />\n</template>\n'
+      const { fixed } = lint('basic', 'A.vue', code)
+      expect(fixed.output).toContain(':a="(data as any)"')
+    })
+
+    it('reports syntax errors in a TypeScript SFC at the right position', () => {
+      const code =
+        '<script setup lang="ts">\nconst data = 1\n</script>\n\n<template>\n  <div></span>\n</template>\n'
+      const { messages } = lint('basic', 'A.vue', code)
+      expect(messages).toHaveLength(1)
+      expect(messages[0]).toMatchObject({ messageId: 'formatError', line: 6, column: 8 })
+    })
+  })
+
   it('never touches the start tag, even when the rebuilt one is wrapped', () => {
     const code = '<style lang="scss" scoped>a{color:red}</style>\n'
     const { fixed } = lint('narrow', 'A.vue', code)
